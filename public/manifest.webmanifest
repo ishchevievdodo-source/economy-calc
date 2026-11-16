@@ -1,0 +1,13 @@
+{
+  "name": "До 23 июля",
+  "short_name": "До свадьбы",
+  "description": "Семейный финансовый план",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f1e8",
+  "theme_color": "#1f4d3e",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
+

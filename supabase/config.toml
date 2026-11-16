@@ -1,0 +1,3 @@
+[functions.telegram-budget]
+verify_jwt = false
+
