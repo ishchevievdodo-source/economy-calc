@@ -3,7 +3,7 @@ create extension if not exists pgcrypto;
 create table if not exists public.households (
   id uuid primary key default gen_random_uuid(),
   name text not null check (char_length(name) between 1 and 80),
-  invite_code text not null unique check (invite_code ~ '^[A-Z0-9]{6}$'),
+  invite_code text not null unique check (invite_code ~ '^[A-Z0-9]{10}$'),
   owner_telegram_id bigint not null,
   data jsonb not null default '{}'::jsonb,
   updated_at timestamptz not null default now()
@@ -31,4 +31,16 @@ begin new.updated_at = now(); return new; end;
 $$;
 drop trigger if exists household_updated on public.households;
 create trigger household_updated before update on public.households for each row execute function public.touch_household();
+
+create or replace function public.enforce_household_member_limit() returns trigger language plpgsql as $$
+begin
+  perform pg_advisory_xact_lock(hashtextextended(new.household_id::text, 0));
+  if (select count(*) from public.household_members where household_id = new.household_id) >= 2 then
+    raise exception 'HOUSEHOLD_FULL';
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists household_member_limit on public.household_members;
+create trigger household_member_limit before insert on public.household_members for each row execute function public.enforce_household_member_limit();
 

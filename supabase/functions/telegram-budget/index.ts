@@ -37,7 +37,7 @@ async function verifyTelegram(initData: string, botToken: string) {
 
 function inviteCode() {
   const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-  const bytes = crypto.getRandomValues(new Uint8Array(6))
+  const bytes = crypto.getRandomValues(new Uint8Array(10))
   return [...bytes].map((byte) => alphabet[byte % alphabet.length]).join('')
 }
 
@@ -98,8 +98,14 @@ Deno.serve(async (request) => {
       const { data: household, error: findError } = await db.from('households').select('id').eq('invite_code', String(body.code || '').trim().toUpperCase()).maybeSingle()
       if (findError) throw findError
       if (!household) return json({ error: 'Код семьи не найден' }, 404)
+      const { count, error: countError } = await db.from('household_members').select('*', { count: 'exact', head: true }).eq('household_id', household.id)
+      if (countError) throw countError
+      if ((count ?? 0) >= 2) return json({ error: 'В этой семье уже два участника' }, 409)
       const { error } = await db.from('household_members').insert({ household_id: household.id, telegram_id: user.id, profile: user })
-      if (error) throw error
+      if (error) {
+        if (error.message.includes('HOUSEHOLD_FULL')) return json({ error: 'В этой семье уже два участника' }, 409)
+        throw error
+      }
       return json({ household: await getHousehold() })
     }
 
